@@ -37,7 +37,13 @@ def _read(name):
 
 
 def _client(cfg):
+    """Editor key - seed read and DataTable writes."""
     return Mabl(config.api_key(), cfg["workspace_id"])
+
+
+def _deploy_client(cfg):
+    """Deployment Trigger / CI-CD key - firing plans and reading results."""
+    return Mabl(config.deploy_key(), cfg["workspace_id"])
 
 
 def _run_id(explicit=None):
@@ -128,19 +134,20 @@ def stage_push(cfg, args, rows=None):
     client = _client(cfg)
     summary = []
     for name, columns, description in targets:
-        table_id, created = client.resolve_table(name, description)
-        print("     %s  %s  (%s)" % (name, table_id, "created" if created else "existing"))
-        added = client.ensure_columns(table_id, columns)
-        if added:
-            print("       + %d column(s): %s" % (len(added), ", ".join(added)))
         scenarios = transform.to_scenarios(rows, columns)
-        written = client.reconcile_scenarios(table_id, scenarios)
-        print("       reconciled to %d rows (1 PUT, not %d POSTs)"
-              % (len(written) or len(scenarios), len(scenarios)))
-        summary.append({"name": name, "id": table_id, "rows": len(scenarios),
-                        "columns": len(columns), "created": created,
+        res = client.upsert_table(name, scenarios, columns, description)
+        print("     %s  %s  (%s)"
+              % (name, res["id"], "created" if res["created"] else "existing"))
+        if res["columns_added"]:
+            print("       + %d column(s): %s"
+                  % (len(res["columns_added"]), ", ".join(res["columns_added"])))
+        print("       %s to %d rows (1 call, not %d POSTs)"
+              % ("created" if res["created"] else "reconciled",
+                 res["rows"], len(scenarios)))
+        summary.append({"name": name, "id": res["id"], "rows": res["rows"],
+                        "columns": len(columns), "created": res["created"],
                         "url": "https://app.mabl.com/workspaces/%s/configuration/data-tables/%s"
-                               % (cfg["workspace_id"], table_id)})
+                               % (cfg["workspace_id"], res["id"])})
     _write("push_summary.json", summary)
     return summary
 
@@ -152,7 +159,7 @@ def stage_trigger(cfg, args):
     if args.dry_run:
         print("     DRY RUN - no deployment event")
         return 0
-    client = _client(cfg)
+    client = _deploy_client(cfg)
     event = client.deployment_event(
         trig["application_id"], trig["environment_id"], trig["plan_labels"],
         revision=os.environ.get("GITHUB_SHA"), preview=args.preview)

@@ -34,7 +34,7 @@ No dependencies. Stdlib only, Python 3.9+.
 # 1. see it work without touching mabl
 python3 -m sgpipe.cli run --offline --dry-run
 
-# 2. supply the workspace API key
+# 2. supply the API keys (two - see "API keys" below)
 cp .env.example .env && $EDITOR .env
 
 # 3. real run: reads seed rows from mabl, pushes to mabl
@@ -55,15 +55,36 @@ Every stage can also run on its own — `seed`, `generate`, `transform`, `push`,
 | `--trigger` | After pushing, fire a deployment event and gate on the result |
 | `--preview` | With `trigger`: resolve which plans *would* run, without running them |
 
-Expected output:
+Verified output from a real run against the Safe Guard POC workspace:
 
 ```
-[01] seed rows        4 rows read live from mabl
-[02] getRates         4 seed rows in parallel -> 80 raw records in ONE list
-[03] filter/dedupe    raw 80 -> filtered 76 (BMMC+BMGP) -> unique 68 -> valid 68
-[04] push             SGPOC_Rates_API   <id>  reconciled to 68 rows (1 PUT, not 68 POSTs)
-                      SGPOC_Rates_UI    <id>  reconciled to 68 rows
+[01] seed rows     4 rows read live from mabl table s1oxKyttsBPvccyFL2gtzw-vt
+[02] getRates      4 seed rows in parallel -> 80 raw records in ONE list
+[03] filter/dedupe raw 80 -> filtered 76 (BMMC+BMGP) -> unique 68 -> valid 68
+[04] push          SGPOC_Rates_API  dG0GLxPXjfq72yIivaN24w-vt  (created)
+                     created to 68 rows (1 call, not 68 POSTs)
+                   SGPOC_Rates_UI   Uq5MPYQNsKT6Jeb7ANC2Rw-vt  (created)
+                     created to 68 rows (1 call, not 68 POSTs)
 ```
+
+Run it a second time and both lines read `(existing)` / `reconciled` against the
+**same two ids**, still 68 rows, with every row restamped to the new `runId`.
+
+---
+
+## API keys
+
+mabl permissions API keys per use case, so the pipeline wants two:
+
+| Variable | Key type | Used by |
+|---|---|---|
+| `MABL_API_KEY` | **Editor** | stages 01-04: reading the seed table, writing the DataTables |
+| `MABL_DEPLOY_KEY` | **Deployment Trigger** or **CI/CD Integration** | stage 05: `POST /events/deployment`, `GET /execution/result/event/{id}` |
+
+`MABL_DEPLOY_KEY` is optional — omit it and stage 05 falls back to
+`MABL_API_KEY` with a warning. In this workspace the Editor key was in fact
+accepted by the deployment endpoint, but the split is what mabl documents and
+it keeps the CI secret scoped to triggering.
 
 ---
 
@@ -125,7 +146,8 @@ One real API asymmetry, handled in `sgpipe/mabl.py`: reading scenarios is
 artifact. One secret:
 
 ```bash
-gh secret set MABL_API_KEY --repo andwaitforit/SG-POC-Pipeline
+gh secret set MABL_API_KEY    --repo andwaitforit/SG-POC-Pipeline   # Editor key
+gh secret set MABL_DEPLOY_KEY --repo andwaitforit/SG-POC-Pipeline   # CI/CD or Deployment Trigger key
 ```
 
 **A GitHub-hosted runner cannot reach Safe-Guard's UAT endpoints** — the same

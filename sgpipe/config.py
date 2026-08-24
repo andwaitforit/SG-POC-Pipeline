@@ -29,15 +29,37 @@ def load_config(path=None):
 
 
 def api_key(required=True):
+    """Editor key. mabl permissions API keys per use case, and DataTable
+    read/write is an editor-role action."""
     load_dotenv()
     key = os.environ.get("MABL_API_KEY", "").strip()
     if not key and required:
         sys.exit(
-            "MABL_API_KEY is not set.\n"
-            "  local: copy .env.example to .env and paste the workspace API key\n"
+            "MABL_API_KEY is not set (needs an Editor key).\n"
+            "  local: copy .env.example to .env and paste it\n"
             "  CI:    gh secret set MABL_API_KEY --repo <owner>/<repo>"
         )
     return key
+
+
+def deploy_key(required=True):
+    """Deployment Trigger / CI-CD key, for POST /events/deployment and
+    GET /execution/result/event/{id}. An Editor key is not permissioned for
+    those, so this is deliberately separate. Falls back to MABL_API_KEY for
+    single-key setups."""
+    load_dotenv()
+    key = os.environ.get("MABL_DEPLOY_KEY", "").strip()
+    if key:
+        return key
+    fallback = os.environ.get("MABL_API_KEY", "").strip()
+    if fallback:
+        print("  ! MABL_DEPLOY_KEY not set - falling back to MABL_API_KEY.")
+        print("    If the trigger 401s, that is why: it needs a Deployment")
+        print("    Trigger or CI/CD Integration key, not an Editor key.")
+        return fallback
+    if required:
+        sys.exit("MABL_DEPLOY_KEY is not set (needs a Deployment Trigger or CI/CD key).")
+    return ""
 
 
 def out_dir():

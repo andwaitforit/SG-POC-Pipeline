@@ -93,14 +93,28 @@ class Mabl(object):
         }
         return self._call("POST", "/dataTables", body=body)
 
-    def resolve_table(self, name, description=""):
-        """Return an existing table id or create one. Called once per run;
-        never inside a loop - POST /dataTables always creates a NEW table and
-        never upserts on name, which is what produces duplicate tables."""
+    def upsert_table(self, name, scenarios, columns=(), description=""):
+        """Put `scenarios` into the table called `name`, creating it if needed.
+
+        Called once per table per run. POST /dataTables always creates a NEW
+        table and never upserts on name, so it is used only when no table by
+        that name exists - otherwise we resolve the id and PUT. That is the
+        difference between one table and one table per iteration.
+
+        A table cannot be created empty ("DataTable must have at least one
+        scenario remaining"), so creation carries the rows, which also
+        establishes the columns.
+        """
         found = self.find_table(name)
-        if found:
-            return found["id"], False
-        return self.create_table(name, description)["id"], True
+        if not found:
+            table = self.create_table(name, description, scenarios)
+            return {"id": table["id"], "created": True,
+                    "rows": len(scenarios), "columns_added": []}
+        table_id = found["id"]
+        added = self.ensure_columns(table_id, columns) if columns else []
+        written = self.reconcile_scenarios(table_id, scenarios)
+        return {"id": table_id, "created": False,
+                "rows": len(written) or len(scenarios), "columns_added": added}
 
     def get_scenarios(self, table_id):
         try:
@@ -157,8 +171,13 @@ class Mabl(object):
         body = {
             "application_id": application_id,
             "environment_id": environment_id,
-            "plan_labels": list(plan_labels),
         }
+        # plan_labels filters to plans carrying those labels. Note these are
+        # PLAN labels, not test labels - passing a test label (e.g. Amz_Flow)
+        # matches nothing. Omit entirely to run every plan whose deployment
+        # trigger matches this application + environment.
+        if plan_labels:
+            body["plan_labels"] = list(plan_labels)
         if revision:
             body["revision"] = revision
         params = {"preview": "true"} if preview else None
