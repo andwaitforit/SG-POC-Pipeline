@@ -16,7 +16,9 @@ BASE = "https://api.mabl.com"
 
 
 class MablError(RuntimeError):
-    pass
+    def __init__(self, message, status=None):
+        RuntimeError.__init__(self, message)
+        self.status = status
 
 
 class Mabl(object):
@@ -45,22 +47,30 @@ class Mabl(object):
             if exc.code in tolerate:
                 raise
             detail = exc.read().decode()[:600]
-            raise MablError("%s %s -> %s %s\n%s" % (method, path, exc.code, exc.reason, detail))
+            raise MablError(
+                "%s %s -> %s %s\n%s" % (method, path, exc.code, exc.reason, detail),
+                status=exc.code)
         except urllib.error.URLError as exc:
             raise MablError("%s %s -> %s" % (method, path, exc.reason))
 
-    def _paged(self, path, params, key):
+    def _paged(self, path, params, key, max_pages=200):
         params = dict(params or {})
         params.setdefault("limit", 100)
-        items, cursor = [], None
-        while True:
+        items, cursor, seen = [], None, set()
+        for _ in range(max_pages):
             if cursor:
                 params["cursor"] = cursor
             page = self._call("GET", path, params=params)
-            items.extend(page.get(key) or [])
+            batch = page.get(key) or []
+            items.extend(batch)
             cursor = page.get("cursor") or page.get("nextCursor")
-            if not cursor:
+            # A cursor can come back even on the last page, so stop on an empty
+            # batch or a repeated cursor rather than trusting its absence.
+            if not cursor or not batch or cursor in seen:
                 return items
+            seen.add(cursor)
+        print("  ! stopped paging %s after %d pages" % (path, max_pages))
+        return items
 
     # ---- data tables -----------------------------------------------------
     def list_tables(self):
@@ -97,9 +107,12 @@ class Mabl(object):
             return self._paged(
                 "/dataTables/scenarios", {"data_table_id": table_id}, "scenarios"
             )
-        except MablError:
+        except MablError as exc:
             # Documented shape is the query-param form above; fall back to the
-            # path form in case the deployment differs.
+            # path form only if that route is genuinely absent. Anything else
+            # (401, 403) must surface rather than be retried into confusion.
+            if exc.status not in (404, 405):
+                raise
             return self._paged("/dataTables/%s/scenarios" % table_id, {}, "scenarios")
 
     def get_columns(self, table_id):
@@ -121,7 +134,9 @@ class Mabl(object):
         try:
             existing = set(self.get_columns(table_id))
         except MablError as exc:
-            print("  ! could not read columns (%s) - relying on reconcile" % exc)
+            if exc.status not in (404, 405):
+                raise
+            print("  ! no variableNames route - relying on reconcile to carry columns")
             return []
         missing = [c for c in wanted if c not in existing]
         for col in missing:
