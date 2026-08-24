@@ -1,0 +1,39 @@
+{
+  "workspace_id": "VPJrl79ayoIJPrf4Arj4sA-w",
+  "seed": {
+    "data_table_id": "s1oxKyttsBPvccyFL2gtzw-vt",
+    "_comment": "Amazon_Rates_Test_Input - real seed rows, read live from mabl"
+  },
+  "targets": {
+    "api_table_name": "SGPOC_Rates_API",
+    "ui_table_name": "SGPOC_Rates_UI"
+  },
+  "filter": {
+    "include_product_codes": [
+      "BMMC",
+      "BMGP"
+    ],
+    "unique_on": [
+      "vin",
+      "productCode",
+      "coverageCode",
+      "termMonthsMin",
+      "termMonthsMax"
+    ],
+    "_comment": "vin MUST be in unique_on - without it, every seed row collapses to one set of rate options"
+  },
+  "trigger": {
+    "application_id": "opTY3zRNuZYfpNQXZ54v7g-a",
+    "environment_id": "ocA4UZyJ35AxppPjWV2fwg-e",
+    "plan_labels": [
+      "Amz_Flow"
+    ],
+    "poll_interval_seconds": 15,
+    "poll_timeout_seconds": 1200
+  },
+  "mock": {
+    "_comment": "Stands in for the real getRates call and the Salesforce/PG lookups. Swap sources.py for live HTTP when a self-hosted runner exists. duplicate_options simulates the repeated rate options a real response returns, so the dedupe stage has something to do.",
+    "price_jitter_pct": 6,
+    "duplicate_options": 2
+  }
+}
