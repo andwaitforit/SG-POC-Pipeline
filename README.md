@@ -90,12 +90,13 @@ it keeps the CI secret scoped to triggering.
 
 ## What it produces
 
-Two DataTables, both with **stable names and no timestamp**:
+Three DataTables, all with **stable names and no timestamp**:
 
-| Table | Columns | For |
-|---|---|---|
-| `SGPOC_Rates_API` | 40 | The API chain — every response field plus the merged and provenance columns |
-| `SGPOC_Rates_UI` | 17 | Portal tests — the vehicle, product, price and dealer fields a journey needs |
+| Table | Rows | Columns | For |
+|---|---|---|---|
+| `SGPOC_Rates_API` | 68 | 40 | The API chain — every response field plus the merged and provenance columns |
+| `SGPOC_Rates_UI` | 68 | 17 | Portal tests — the vehicle, product, price and dealer fields a journey needs |
+| `SGPOC_Rates_Verify` | 4 | 11 | One row per vehicle — the GetRates query parameters. GetRates is per-vehicle, so driving it off the per-option table would call it 68 times for 4 VINs |
 
 Useful columns for chaining tests:
 
@@ -136,6 +137,35 @@ curl -u "key:$MABL_API_KEY" https://api.mabl.com/dataTables?workspace_id=...
 One real API asymmetry, handled in `sgpipe/mabl.py`: reading scenarios is
 `GET /dataTables/scenarios?data_table_id=…`, writing them is
 `PUT /dataTables/{id}/scenarios`.
+
+---
+
+## The mabl side
+
+| Object | Id | State |
+|---|---|---|
+| Test `SGPOC \| GetRates read-only check` | `iS8Dw9qOYs5AKQ97MvQ6Zw-j` | Passing against the real UAT endpoints |
+| Plan `SGPOC \| Pipeline verification` | `fyqrhQ452Mlrz616uh8xmg-p` | Created, contains the test, runs on demand |
+
+The test gets an Okta token (`scope=amz.rate.read`), then `GET /auto/rates/v1`, and
+asserts only the response structure — `data.products`, `productItems`, `options`
+all non-empty. Deliberately no assertions on `sellerCost` or array lengths: this
+pipeline generates mock prices, so asserting them against live UAT would fail.
+
+**Two steps remain, and neither is reachable from the mabl MCP:**
+
+1. **Bind the DataTable.** Open the test in the trainer, attach `SGPOC_Rates_Verify`,
+   switch the hard-coded `vin` / `companyId` / `odometer` / `saleDate` query
+   parameters to its variables, and turn on *Run all scenarios*. There is no
+   MCP tool that associates a DataTable with a test, and `mabl_authoring_edit`
+   is browser-only, so API test steps cannot be edited programmatically.
+2. **Give the plan a deployment trigger.** `create_mabl_plan` makes a plan with
+   no trigger, and a plan label alone does not make a deployment event pick it
+   up (verified: `plan_labels: ["SGPOC_Pipeline"]` resolves nothing). Set the
+   plan to run on deployment so stage 05 fires it.
+
+Until step 2, stage 05 fires only the two pre-existing plans, `Amazon API Tests`
+and `Amazon_save`.
 
 ---
 

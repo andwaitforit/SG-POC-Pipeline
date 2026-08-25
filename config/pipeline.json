@@ -6,7 +6,8 @@
   },
   "targets": {
     "api_table_name": "SGPOC_Rates_API",
-    "ui_table_name": "SGPOC_Rates_UI"
+    "ui_table_name": "SGPOC_Rates_UI",
+    "verify_table_name": "SGPOC_Rates_Verify"
   },
   "filter": {
     "include_product_codes": [

@@ -20,6 +20,38 @@ UI_COLUMNS = [
 ]
 
 
+# One row per vehicle: the query parameters GetRates actually takes, plus
+# provenance. Drives the verification test - GetRates is per-vehicle, so
+# driving it off the per-rate-option table would call it once per option.
+VERIFY_COLUMNS = [
+    "seedTcId", "vin", "companyId", "vendorName", "channel", "isFinalRate",
+    "saleDate", "odometer", "inServiceDate", "ratesCaptured", "runId",
+]
+
+
+def verify_rows(records):
+    """Collapse the rate rows to one row per VIN for the GetRates test."""
+    by_vin = {}
+    for rec in records:
+        vin = rec.get("vin")
+        if vin not in by_vin:
+            by_vin[vin] = {
+                "seedTcId": rec.get("seedTcId", ""),
+                "vin": vin,
+                "companyId": rec.get("companyId", ""),
+                "vendorName": rec.get("vendorName", ""),
+                "channel": rec.get("channel", ""),
+                "isFinalRate": "TRUE",
+                "saleDate": rec.get("saleDate", ""),
+                "odometer": rec.get("odometer", ""),
+                "inServiceDate": rec.get("inServiceDate", ""),
+                "ratesCaptured": 0,
+                "runId": rec.get("runId", ""),
+            }
+        by_vin[vin]["ratesCaptured"] += 1
+    return sorted(by_vin.values(), key=lambda r: str(r["seedTcId"]))
+
+
 def filter_products(records, include_product_codes):
     allowed = set(include_product_codes)
     return [r for r in records if r.get("productCode") in allowed]
