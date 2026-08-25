@@ -169,8 +169,10 @@ def stage_push(cfg, args, rows=None):
 # ---------------------------------------------------------------- stage 05
 def stage_trigger(cfg, args):
     trig = cfg["trigger"]
-    print("[05] trigger mabl plans %s" % trig["plan_labels"])
-    if args.dry_run:
+    print("[05] trigger mabl plans %s" % (trig["plan_labels"] or "(any deployment-triggered plan)"))
+    # --preview never executes a plan, so it stays useful under --dry-run:
+    # it is the only way to exercise MABL_DEPLOY_KEY without running tests.
+    if args.dry_run and not args.preview:
         print("     DRY RUN - no deployment event")
         return 0
     client = _deploy_client(cfg)
