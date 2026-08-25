@@ -18,6 +18,10 @@ on:
         description: "Fire the mabl plans after pushing, and gate on the result"
         type: boolean
         default: false
+      preview:
+        description: "With trigger: resolve which plans WOULD run, without running them. Use this to check MABL_DEPLOY_KEY safely."
+        type: boolean
+        default: false
   schedule:
     # 07:00 UTC daily - fresh data waiting each morning
     - cron: "0 7 * * *"
@@ -47,11 +51,13 @@ jobs:
           OFFLINE: ${{ inputs.offline }}
           DRY_RUN: ${{ inputs.dry_run }}
           TRIGGER: ${{ inputs.trigger }}
+          PREVIEW: ${{ inputs.preview }}
         run: |
           ARGS=""
           [ "$OFFLINE" = "true" ] && ARGS="$ARGS --offline"
           [ "$DRY_RUN" = "true" ] && ARGS="$ARGS --dry-run"
           [ "$TRIGGER" = "true" ] && ARGS="$ARGS --trigger"
+          [ "$PREVIEW" = "true" ] && ARGS="$ARGS --preview"
           echo "sgpipe run$ARGS"
           python3 -m sgpipe.cli run $ARGS
 
