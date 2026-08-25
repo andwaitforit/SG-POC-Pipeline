@@ -1,0 +1,65 @@
+name: SG POC pipeline
+
+# Dummy-source pipeline: the getRates call and the Salesforce/Postgres lookups
+# are mocked (see sgpipe/sources.py), but the DataTable write is real.
+
+on:
+  workflow_dispatch:
+    inputs:
+      offline:
+        description: "Use the bundled seed fixture instead of reading seed rows from mabl"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Run every stage but skip the mabl writes"
+        type: boolean
+        default: false
+      trigger:
+        description: "Fire the mabl plans after pushing, and gate on the result"
+        type: boolean
+        default: false
+  schedule:
+    # 07:00 UTC daily - fresh data waiting each morning
+    - cron: "0 7 * * *"
+
+concurrency:
+  group: sg-poc-pipeline
+  cancel-in-progress: false
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Unit tests
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Run pipeline
+        env:
+          MABL_API_KEY: ${{ secrets.MABL_API_KEY }}
+          MABL_DEPLOY_KEY: ${{ secrets.MABL_DEPLOY_KEY }}
+          OFFLINE: ${{ inputs.offline }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          TRIGGER: ${{ inputs.trigger }}
+        run: |
+          ARGS=""
+          [ "$OFFLINE" = "true" ] && ARGS="$ARGS --offline"
+          [ "$DRY_RUN" = "true" ] && ARGS="$ARGS --dry-run"
+          [ "$TRIGGER" = "true" ] && ARGS="$ARGS --trigger"
+          echo "sgpipe run$ARGS"
+          python3 -m sgpipe.cli run $ARGS
+
+      - name: Upload stage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-output
+          path: out/
+          if-no-files-found: warn
+          retention-days: 14

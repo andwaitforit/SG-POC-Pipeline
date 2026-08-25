@@ -1,0 +1,22 @@
+[
+  {"Tc_id": "1", "Tc_id_New": "1", "vin": "WMWXP3C0XL2234567", "companyId": "7D9VYULA",
+   "vendorName": "SG_Automation", "channel": "SG_Automation", "odometer": "1000",
+   "languageCode": "en_US", "financeType": "Finance", "financeAmount": "2200",
+   "vehicleCondition": "NEW", "isFinalRate": "TRUE", "transactionId": "Test1235",
+   "OEM": "BMW", "saleDate": "", "inServiceDate": ""},
+  {"Tc_id": "2", "Tc_id_New": "1", "vin": "3MW5U9J0AN8183926", "companyId": "WH1ZGVIU",
+   "vendorName": "SG_Automation", "channel": "SG_Automation", "odometer": "1000",
+   "languageCode": "en_US", "financeType": "Finance", "financeAmount": "2200",
+   "vehicleCondition": "NEW", "isFinalRate": "TRUE", "transactionId": "Test1235",
+   "OEM": "", "saleDate": "", "inServiceDate": ""},
+  {"Tc_id": "3", "Tc_id_New": "2", "vin": "4USBT335A5L916783", "companyId": "AKQUCQHB",
+   "vendorName": "SG_Automation", "channel": "SG_Automation", "odometer": "1000",
+   "languageCode": "en_US", "financeType": "CASH", "financeAmount": "10000",
+   "vehicleCondition": "NEW", "isFinalRate": "TRUE", "transactionId": "Test1235",
+   "OEM": "", "saleDate": "", "inServiceDate": ""},
+  {"Tc_id": "4", "Tc_id_New": "3", "vin": "3MW5P7J0AN8104867", "companyId": "1X3C99C5",
+   "vendorName": "SG_Automation", "channel": "SG_Automation", "odometer": "1000",
+   "languageCode": "en_US", "financeType": "LEASE", "financeAmount": "2200",
+   "vehicleCondition": "NEW", "isFinalRate": "TRUE", "transactionId": "Test1235",
+   "OEM": "", "saleDate": "", "inServiceDate": ""}
+]
