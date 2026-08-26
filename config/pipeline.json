@@ -11,7 +11,8 @@
   "filter": {
     "include_product_codes": [
       "BMMC",
-      "BMGP"
+      "BMGP",
+      "BMLS"
     ],
     "unique_on": [
       "vin",
