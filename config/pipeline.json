@@ -25,10 +25,12 @@
   "trigger": {
     "application_id": "opTY3zRNuZYfpNQXZ54v7g-a",
     "environment_id": "ocA4UZyJ35AxppPjWV2fwg-e",
-    "plan_labels": [],
+    "plan_labels": [
+      "SGPOC_Pipeline"
+    ],
     "poll_interval_seconds": 15,
     "poll_timeout_seconds": 1200,
-    "_comment": "plan_labels filters to PLAN labels, not test labels. The Amazon API Tests plan carries no labels but is bound to a deployment trigger, so leave this empty to match on application + environment."
+    "_comment": "Targets ONLY the 'SGPOC | Pipeline verification' plan (label SGPOC_Pipeline), which holds our demo copies of the tests. This deliberately excludes the Safe-Guard team's own Amazon plans so the pipeline never triggers their work."
   },
   "mock": {
     "_comment": "Stands in for the real getRates call and the Salesforce/PG lookups. Swap sources.py for live HTTP when a self-hosted runner exists. duplicate_options simulates the repeated rate options a real response returns, so the dedupe stage has something to do.",
