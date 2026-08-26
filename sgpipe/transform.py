@@ -10,6 +10,8 @@ API_COLUMNS = [
     "financeType", "companyId", "dealerName", "dealerState", "make", "model",
     "vin", "modelYear", "odometer", "inServiceDate", "saleDate",
     "transactionId", "vendorName", "channel", "runId",
+    "reqFinanceType", "reqFinanceAmount", "reqLanguageCode",
+    "reqVehicleCondition",
 ]
 
 UI_COLUMNS = [

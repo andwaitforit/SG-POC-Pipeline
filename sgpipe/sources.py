@@ -140,6 +140,10 @@ def fetch_rates(seed_row, run_id, jitter_pct=6, duplicate_options=0):
             "channel": seed_row.get("channel", ""),
             "seedTcId": seed_row.get("Tc_id", ""),
             "runId": run_id,
+            "reqFinanceType": seed_row.get("financeType", ""),
+            "reqFinanceAmount": seed_row.get("financeAmount", ""),
+            "reqLanguageCode": seed_row.get("languageCode") or "en_US",
+            "reqVehicleCondition": seed_row.get("vehicleCondition") or "NEW",
         }
         rec.update(PROGRAM)
         rec.update(product)
