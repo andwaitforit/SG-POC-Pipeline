@@ -193,11 +193,16 @@ class Mabl(object):
             last = self.event_result(event_id)
             metrics = last.get("plan_execution_metrics") or {}
             running = (metrics.get("running") or 0) + (metrics.get("queued") or 0)
+            passed = metrics.get("passed") or 0
+            failed = metrics.get("failed") or 0
             total = metrics.get("total") or 0
-            done = total and not running
             print("    plans: %s total, %s passed, %s failed, %s running"
-                  % (total, metrics.get("passed", 0), metrics.get("failed", 0), running))
-            if done:
+                  % (total, passed, failed, running))
+            # A freshly-triggered event reports 0 running / 0 queued for a beat
+            # before the runs spin up, so "nothing running" is NOT done - that
+            # exits on the first poll before any test executes. Wait until every
+            # plan has reached a pass/fail verdict.
+            if total and running == 0 and (passed + failed) >= total:
                 return last
             time.sleep(interval)
         print("  ! timed out after %ss" % timeout)
